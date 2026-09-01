@@ -48,12 +48,12 @@ In reinforced concrete, acoustic emissions typically arise from aggregate-matrix
 Measures the physical bending, elongation, or compression of the structure. It utilizes foil strain gauges where deformation of the metallic foil changes its electrical resistance proportional to the applied strain (defined by the Gauge Factor).
 
 ### Hardware Specification
-*   **Sensor:** Foil strain gauge (e.g., BF350).
-*   **Circuit:** Quarter-bridge Wheatstone configuration with precision balancing resistors. The output voltage relates to resistance change via: $V_{out} = V_{ex} \times \left( \frac{\Delta R}{4R} \right)$.
-*   **Amplifier/ADC:** HX711 (or ADS1115).
-    *   **Resolution:** 24-bit.
-    *   **Gain:** 128x for Channel A to detect microvolt changes.
-    *   **Sampling Rate:** Tunable (typically 10 SPS or 80 SPS for burst).
+* **Sensor:** Foil strain gauge (e.g., BF350).
+* **Circuit:** Quarter-bridge Wheatstone configuration with precision balancing resistors. The output voltage relates to resistance change via: $V_{out} = V_{ex} \times \left( \frac{\Delta R}{4R} \right)$.
+* **Amplifier/ADC:** HX711 (or ADS1115).
+  * **Resolution:** 24-bit.
+  * **Gain:** 128x for Channel A to detect microvolt changes.
+  * **Sampling Rate:** Tunable (typically 10 SPS or 80 SPS for burst).
 
 ### Signal Processing Method
 When Subsystem 1 flags a snap, it establishes a precise timestamp and opens a monitoring window for Subsystem 2. A Page-Hinkley (PH) changepoint detection test is applied to the thermally-compensated strain data.
