@@ -13,32 +13,34 @@ This document details the hardware components, the multi-stage processing pipeli
 The following diagram illustrates the hardware components, the dual-core architecture of the ESP32-S3, and the high-level data flow through the processing pipeline.
 
 ```mermaid
-        graph TD
-    direction TB
-    
-    %% Hardware Components
+flowchart TD
+
+    %% Power Subsystem
     subgraph PowerSub [Power Subsystem]
         Solar["Solar Panel (5-6V, 1-2W)"] --> MPPT["MPPT Controller"]
         MPPT --> Battery["18650 Li-ion Battery"]
         Battery --> TP4056["TP4056 Charger/Regulator"]
     end
 
+    %% Sensor Array
     subgraph Sensors [Sensor Array]
-        Piezo["Piezo Contact Mic (Acoustic)"] --> Comp["LM358 Comparator"]
-        Strain["Foil Strain Gauge"] --> HX711["HX711/ADS1115 ADC"]
+        Piezo["Piezo Contact Mic (Acoustic)"]
+        Comp["LM358 Comparator"]
+        Piezo --> Comp
+        
+        Strain["Foil Strain Gauge"]
+        HX711["HX711/ADS1115 ADC"]
+        Strain --> HX711
+        
         IMU["6-Axis IMU (MPU6050/BNO085)"]
         BME280["BME280 (Temp/Humidity)"]
     end
 
-    subgraph MCU [ESP32-S3 (Dual-Core FreeRTOS)]
+    %% Microcontroller
+    subgraph MCU [ESP32-S3 Dual-Core FreeRTOS]
         Core0["Core 0 (Housekeeping & Polling)"]
         Core1["Core 1 (Burst Compute & DSP)"]
-
-        Core0 -->|Reads| IMU
-        Core0 -->|Reads| BME280
-        Core0 -->|Manages| LoRaTask["LoRa Housekeeping"]
-
-        Comp -->|Hardware Interrupt (Wake)| Core1
+        LoRaTask["LoRa Housekeeping"]
 
         subgraph Pipeline [Data Processing Pipeline]
             Wavelet["Acoustic: Wavelet Transform"]
@@ -52,20 +54,34 @@ The following diagram illustrates the hardware components, the dual-core archite
             StrainEval --> FaultDiscrim
             FaultDiscrim --> Decision
         end
-
-        Core1 --> Pipeline
-        Core1 -->|Reads| HX711
-        Core1 -->|Reads Raw| Piezo
     end
 
+    %% Communication
     subgraph Comm [Communication]
         LoRa["SX1278 LoRa (865-867 MHz)"]
     end
 
+    %% ==========================================
+    %% Cross-Subgraph Connections (Moved to bottom)
+    %% ==========================================
+    
+    %% Power routing
     TP4056 --> MCU
     TP4056 --> Sensors
     TP4056 --> Comm
 
+    %% Core 0 tasks
+    Core0 -->|Reads| IMU
+    Core0 -->|Reads| BME280
+    Core0 -->|Manages| LoRaTask
+
+    %% Core 1 tasks and interrupts
+    Comp -->|Hardware Interrupt Wake| Core1
+    Core1 -->|Reads| HX711
+    Core1 -->|Reads Raw| Piezo
+    Core1 --> Pipeline
+
+    %% Outbound Comm routing
     Decision -->|Alert/Consensus| LoRa
     LoRaTask --> LoRa
 ```
@@ -157,58 +173,59 @@ The following flowchart illustrates the complete event-processing pipeline, from
 flowchart TD
     %% States
     Idle(("Idle / Deep Sleep"))
-    Housekeeping["Core 0: Periodic Housekeeping\nTemp, Humidity, Tilt"]
-    Interrupt{"Hardware Interrupt:\nAcoustic Threshold Exceeded?"}
+    Housekeeping["Core 0: Periodic Housekeeping<br>Temp, Humidity, Tilt"]
+    Interrupt{"Hardware Interrupt:<br>Acoustic Threshold Exceeded?"}
     Wake["Core 1: WAKE - Burst Mode"]
     
     %% Processing
-    WaveletTask["Execute Daubechies\nWavelet Transform"]
-    ClassifyAcoustic{"Is Acoustic Signature\na Valid Snap?"}
+    WaveletTask["Execute Daubechies<br>Wavelet Transform"]
+    ClassifyAcoustic{"Is Acoustic Signature<br>a Valid Snap?"}
     
-    StrainEval["Start Post-Event\nStrain Correlation Window"]
-    ThermComp["Apply Learned\nThermal Compensation"]
-    PageHinkley{"Page-Hinkley Detects\nSustained Strain Shift?"}
+    StrainEval["Start Post-Event<br>Strain Correlation Window"]
+    ThermComp["Apply Learned<br>Thermal Compensation"]
+    PageHinkley{"Page-Hinkley Detects<br>Sustained Strain Shift?"}
     
-    Mahalanobis["Calculate Mahalanobis Distance\nacross all sensors"]
-    SensorHealth{"Is Distance within\nNormal Sensor Model?"}
+    Mahalanobis["Calculate Mahalanobis Distance<br>across all sensors"]
+    SensorHealth{"Is Distance within<br>Normal Sensor Model?"}
     
     %% Actions
-    LogElastic["Log Elastic Event /\nReturn to Sleep"]
-    FlagSensor["Flag Sensor Fault /\nDebonding Error"]
-    LocalAlert["Generate Local\nStructural Anomaly Alert"]
-    Broadcast["Broadcast to Neighbors\nvia LoRa"]
-    Consensus{"Cross-Validation:\nNeighbor Confirmation?"}
-    FinalAlert(("Transmit Final\nConfirmed Alert to Gateway"))
+    LogElastic["Log Elastic Event /<br>Return to Sleep"]
+    FlagSensor["Flag Sensor Fault /<br>Debonding Error"]
+    LocalAlert["Generate Local<br>Structural Anomaly Alert"]
+    Broadcast["Broadcast to Neighbors<br>via LoRa"]
+    Consensus{"Cross-Validation:<br>Neighbor Confirmation?"}
+    FinalAlert(("Transmit Final<br>Confirmed Alert to Gateway"))
 
     %% Flow
     Idle --> Housekeeping
     Housekeeping --> Idle
     
     Housekeeping --> Interrupt
-    Interrupt -->|Yes| Wake
-    Interrupt -->|No| Idle
+    Interrupt -->|"Yes"| Wake
+    Interrupt -->|"No"| Idle
     
     Wake --> WaveletTask
     WaveletTask --> ClassifyAcoustic
-    ClassifyAcoustic -->|No (Noise)| LogElastic
-    ClassifyAcoustic -->|Yes| StrainEval
+    ClassifyAcoustic -->|"No (Noise)"| LogElastic
+    ClassifyAcoustic -->|"Yes"| StrainEval
     
     StrainEval --> ThermComp
     ThermComp --> PageHinkley
     
-    PageHinkley -->|No| LogElastic
-    PageHinkley -->|Yes| Mahalanobis
+    PageHinkley -->|"No"| LogElastic
+    PageHinkley -->|"Yes"| Mahalanobis
     
     Mahalanobis --> SensorHealth
-    SensorHealth -->|No| FlagSensor
-    SensorHealth -->|Yes| LocalAlert
+    SensorHealth -->|"No"| FlagSensor
+    SensorHealth -->|"Yes"| LocalAlert
     
     LocalAlert --> Broadcast
     Broadcast --> Consensus
     
-    Consensus -->|Yes| FinalAlert
-    Consensus -->|No (Timeout/Unconfirmed)| LogElastic
+    Consensus -->|"Yes"| FinalAlert
+    Consensus -->|"No (Timeout/Unconfirmed)"| LogElastic
     
     LogElastic --> Idle
     FlagSensor --> Idle
+ FlagSensor --> Idle
 ```
