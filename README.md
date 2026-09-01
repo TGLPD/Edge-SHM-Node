@@ -1,4 +1,4 @@
-# ATF V-2.1 — Edge-Processed Structural Health Monitoring Node
+# Edge-Processed Structural Health Monitoring Node
 
 <div align="center">
 
@@ -16,7 +16,7 @@
 
 Current infrastructure monitoring solutions stream raw sensor data to the cloud, drain power, and trigger constant false alarms from routine temperature shifts and traffic vibrations. This project takes a fundamentally different approach.
 
-**ATF V-2.1** is an edge-computing structural health monitoring node that performs multi-modal sensor fusion, wavelet-based signal processing, and machine learning inference **entirely on-device** using an ESP32-S3 microcontroller — powered indefinitely off-grid by a solar panel and battery buffer. It monitors **concrete highway bridges** for micro-fractures, permanent deformation, and foundation settling, while autonomously distinguishing real structural damage from environmental noise and sensor hardware faults.
+**Edge SHM** is an edge-computing structural health monitoring node that performs multi-modal sensor fusion, wavelet-based signal processing, and machine learning inference **entirely on-device** using an ESP32-S3 microcontroller — powered indefinitely off-grid by a solar panel and battery buffer. It monitors **concrete highway bridges** for micro-fractures, permanent deformation, and foundation settling, while autonomously distinguishing real structural damage from environmental noise and sensor hardware faults.
 
 The system doesn't just fuse sensor data — it reasons about the **causal relationship in time** between acoustic fracture events and structural strain, calibrates its own understanding of "normal" for the specific bridge it's mounted on, and continuously verifies its own sensor health before it ever raises an alarm.
 
