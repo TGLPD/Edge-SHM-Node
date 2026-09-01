@@ -148,7 +148,7 @@ The typical thermal expansion coefficient for concrete is ~10-12 × 10⁻⁶ /°
 Differentiates between actual structural damage and sensor failures (e.g., debonding gauges, degraded piezo, drifting IMU). A single sensor behaving anomalously while others remain normal suggests a sensor fault.
 
 ### Signal Processing Method
-*   **Multivariate Approach:** Treats the full reading vector $X = [\text{acoustic\_energy}, \text{strain\_reading}, \text{tilt\_angle}, \text{temperature}]$ as a single point in multivariate space.
+* **Multivariate Approach:** Treats the full reading vector $X = [\text{acoustic\_energy}, \text{strain\_reading}, \text{tilt\_angle}, \text{temperature}]$ as a single point in multivariate space.
 *   **Covariance Matrix Construction:** During calibration and normal operation, the system maintains a covariance matrix $S$ representing the "normal joint sensor behavior" (e.g., how strain naturally correlates with temperature).
 *   **Mahalanobis Distance ($D_M$):** Measures the distance of a new reading vector $x$ from the mean distribution $\mu$, factoring in the covariance.
     *   $D_M(x) = \sqrt{(x - \mu)^T S^{-1} (x - \mu)}$
